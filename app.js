@@ -142,12 +142,33 @@ let isProcessing = false;
 
 function showToast(message, type = "info") {
   const toast = document.createElement("div");
-  toast.className = `toast ${type}`;
+  toast.className = `toast toast-${type}`;
   toast.textContent = message;
+  toast.style.position = "fixed";
+  toast.style.top = "20px";
+  toast.style.right = "20px";
+  toast.style.padding = "12px 20px";
+  toast.style.borderRadius = "8px";
+  toast.style.zIndex = "9999";
+  toast.style.fontWeight = "500";
+  toast.style.animation = "slideIn 0.3s ease";
+  
+  if (type === "success") {
+    toast.style.backgroundColor = "#10b981";
+    toast.style.color = "white";
+  } else if (type === "error") {
+    toast.style.backgroundColor = "#ef4444";
+    toast.style.color = "white";
+  } else {
+    toast.style.backgroundColor = "#3b82f6";
+    toast.style.color = "white";
+  }
+  
   document.body.appendChild(toast);
 
   setTimeout(() => {
-    toast.classList.add("hide");
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.3s ease";
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
@@ -179,6 +200,9 @@ function createRuleGroup(group, tab) {
   
   const label = document.createElement("label");
   label.textContent = group.name;
+  label.style.fontWeight = "600";
+  label.style.display = "block";
+  label.style.marginBottom = "8px";
   groupDiv.appendChild(label);
   
   const subrules = document.createElement("div");
@@ -186,10 +210,17 @@ function createRuleGroup(group, tab) {
   
   group.rules.forEach((rule) => {
     const ruleLabel = document.createElement("label");
+    ruleLabel.style.display = "flex";
+    ruleLabel.style.alignItems = "center";
+    ruleLabel.style.marginBottom = "6px";
+    ruleLabel.style.cursor = "pointer";
+    
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.value = rule.id;
     checkbox.dataset.tab = tab;
+    checkbox.style.marginRight = "8px";
+    checkbox.style.cursor = "pointer";
     checkbox.addEventListener("change", updateButtonStates);
     
     ruleLabel.appendChild(checkbox);
@@ -341,6 +372,8 @@ async function generateVariants(mode) {
       maxResults: parseInt(document.getElementById("maxResults").value)
     };
     
+    console.log("Sending payload:", payload);
+    
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -352,11 +385,18 @@ async function generateVariants(mode) {
     }
     
     const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || "Server returned error");
+    }
+    
     allResults.clear();
     
-    result.variants.forEach(variant => {
-      allResults.set(variant, true);
-    });
+    if (result.variants && Array.isArray(result.variants)) {
+      result.variants.forEach(variant => {
+        allResults.set(variant, true);
+      });
+    }
     
     displayResults();
     
@@ -457,7 +497,7 @@ function clearAll() {
   allResults.clear();
   lastData = null;
   document.getElementById("fileInput").value = "";
-  document.querySelectorAll(".rules input:checked").forEach((c) => {
+  document.querySelectorAll("input[type='checkbox']:checked").forEach((c) => {
     c.checked = false;
   });
   document.getElementById("output").textContent = "Không có kết quả. Vui lòng tải file lên.";
@@ -470,6 +510,12 @@ function clearAll() {
   document.getElementById("fileStats").style.display = "none";
   updateButtonStates();
   showToast("🗑️ Đã xóa tất cả dữ liệu!", "info");
+}
+
+function stopProcessing() {
+  isProcessing = false;
+  updateButtonStates();
+  showToast("⏹️ Dừng xử lý", "info");
 }
 
 // ============================================
